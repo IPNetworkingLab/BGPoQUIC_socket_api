@@ -1,0 +1,6 @@
+[submodule "submodules/msquic"]
+	path = submodules/msquic
+	url = https://github.com/microsoft/msquic.git
+[submodule "submodules/picoquic"]
+	path = submodules/picoquic
+	url = ../picoquic.git

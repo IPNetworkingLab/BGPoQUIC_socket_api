@@ -1,0 +1,2 @@
+set(FDUSERDATA_LIBRARIES fduserdata)
+set(FDUSERDATA_INCLUDE_DIRS ${libfduserdata_SOURCE_DIR})

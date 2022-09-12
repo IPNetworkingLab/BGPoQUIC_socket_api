@@ -1,0 +1,106 @@
+Subject: [PATCH] tail_ref
+---
+Index: picoquic/quicctx.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/picoquic/quicctx.c b/picoquic/quicctx.c
+--- a/picoquic/quicctx.c	(revision 7892ea1fd6270c412e740be890cb7c1f0db26a45)
++++ b/picoquic/quicctx.c	(date 1670954405792)
+@@ -2481,6 +2481,7 @@
+         free(next);
+     }
+     stream->send_queue = NULL;
++    stream->send_queue_end = NULL;
+     picosplay_empty_tree(&stream->stream_data_tree);
+     picoquic_sack_list_free(&stream->sack_list);
+ }
+Index: picoquic/frames.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/picoquic/frames.c b/picoquic/frames.c
+--- a/picoquic/frames.c	(revision 7892ea1fd6270c412e740be890cb7c1f0db26a45)
++++ b/picoquic/frames.c	(date 1670955203992)
+@@ -238,6 +238,7 @@
+                 free(stream->send_queue);
+                 stream->send_queue = next;
+             }
++            stream->send_queue_end = NULL;
+             (void)picoquic_delete_stream_if_closed(cnx, stream);
+         }
+         else {
+@@ -1539,6 +1540,7 @@
+                         free(stream->send_queue->bytes);
+                         free(stream->send_queue);
+                         stream->send_queue = next;
++                        if (!stream->send_queue) stream->send_queue_end = NULL;
+                     }
+ 
+                     stream->sent_offset += length;
+@@ -1922,6 +1924,7 @@
+                         free(stream->send_queue->bytes);
+                         free(stream->send_queue);
+                         stream->send_queue = next;
++                        if (!stream->send_queue) stream->send_queue_end = NULL;
+                     }
+ 
+                     stream->sent_offset += length;
+Index: picoquic/sender.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/picoquic/sender.c b/picoquic/sender.c
+--- a/picoquic/sender.c	(revision 7892ea1fd6270c412e740be890cb7c1f0db26a45)
++++ b/picoquic/sender.c	(date 1670954584147)
+@@ -207,20 +207,27 @@
+                 stream_data = NULL;
+                 ret = -1;
+             } else {
+-                picoquic_stream_queue_node_t** pprevious = &stream->send_queue;
+-                picoquic_stream_queue_node_t* next = stream->send_queue;
++                //picoquic_stream_queue_node_t** pprevious = &stream->send_queue;
++                picoquic_stream_queue_node_t* end = stream->send_queue_end;
+ 
+                 memcpy(stream_data->bytes, data, length);
+                 stream_data->length = length;
+                 stream_data->offset = 0;
+                 stream_data->next_stream_data = NULL;
+ 
+-                while (next != NULL) {
++                /*while (next != NULL) {
+                     pprevious = &next->next_stream_data;
+                     next = next->next_stream_data;
++                }*/
++
++                if (!end) {
++                    stream->send_queue = stream_data;
++                } else {
++                    end->next_stream_data = stream_data;
+                 }
++                stream->send_queue_end = stream_data;
+ 
+-                *pprevious = stream_data;
++                //*pprevious = stream_data;
+             }
+         }
+ 
+Index: picoquic/picoquic_internal.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/picoquic/picoquic_internal.h b/picoquic/picoquic_internal.h
+--- a/picoquic/picoquic_internal.h	(revision 7892ea1fd6270c412e740be890cb7c1f0db26a45)
++++ b/picoquic/picoquic_internal.h	(date 1670954272711)
+@@ -777,6 +777,7 @@
+     picosplay_tree_t stream_data_tree; /* splay of received stream segments */
+     uint64_t sent_offset; /* Amount of data sent in the stream */
+     picoquic_stream_queue_node_t* send_queue; /* if the stream is not "active", list of data segments ready to send */
++    picoquic_stream_queue_node_t* send_queue_end; /* if the stream is not "active", list of data segments ready to send */
+     void * app_stream_ctx;
+     picoquic_stream_direct_receive_fn direct_receive_fn; /* direct receive function, if not NULL */
+     void* direct_receive_ctx; /* direct receive context */
