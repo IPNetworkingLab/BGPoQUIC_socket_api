@@ -3,4 +3,4 @@
 	url = https://github.com/microsoft/msquic.git
 [submodule "submodules/picoquic"]
 	path = submodules/picoquic
-	url = ../picoquic.git
+	url = https://github.com/IPNetworkingLab/BGPoQUIC_picoquic
